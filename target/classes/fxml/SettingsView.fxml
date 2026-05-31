@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Spinner?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+
+<ScrollPane fitToHeight="true" fitToWidth="true" styleClass="settings-view" xmlns="http://javafx.com/javafx/25" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.gym.ui.controller.SettingsController">
+
+    <VBox spacing="24" styleClass="settings-view">
+        <padding>
+            <Insets bottom="30" left="10" right="10" top="10" />
+        </padding>
+
+        <Label styleClass="section-title" text="⚙️ الإعدادات" />
+
+        <!-- General Settings -->
+        <VBox spacing="20" styleClass="card">
+            <Label styleClass="card-title" text="🏢 الإعدادات العامة" />
+
+            <HBox alignment="CENTER_LEFT" spacing="15">
+                <Label minWidth="150" styleClass="settings-label" text="اسم الجيم:" />
+                <TextField fx:id="txtGymName" prefWidth="350" promptText="أدخل اسم الجيم" styleClass="text-field" />
+                <Button onAction="#saveGeneralSettings" styleClass="primary-button" text="💾 حفظ" />
+            </HBox>
+
+            <HBox alignment="CENTER_LEFT" spacing="15">
+                <Label minWidth="150" styleClass="settings-label" text="العملة:" />
+                <ComboBox fx:id="cmbCurrency" prefWidth="200" promptText="اختر العملة" styleClass="combo-box" />
+            </HBox>
+        </VBox>
+
+        <!-- Backup Settings -->
+        <VBox spacing="20" styleClass="card">
+            <Label styleClass="card-title" text="💾 النسخ الاحتياطي" />
+
+            <HBox alignment="CENTER_LEFT" spacing="15">
+                <Label minWidth="150" styleClass="settings-label" text="النسخ التلقائي:" />
+                <CheckBox fx:id="chkAutoBackup" selected="true" text="تفعيل النسخ الاحتياطي اليومي" />
+            </HBox>
+
+            <HBox alignment="CENTER_LEFT" spacing="15">
+                <Label minWidth="150" styleClass="settings-label" text="مسار الحفظ:" />
+                <TextField fx:id="txtBackupPath" editable="false" prefWidth="350" styleClass="text-field" text="./backups" />
+                <Button onAction="#changeBackupPath" styleClass="secondary-button" text="📁 تغيير" />
+            </HBox>
+
+            <HBox spacing="15">
+                <Button onAction="#createBackup" styleClass="success-button" text="💾 إنشاء نسخة احتياطية الآن" />
+                <Button onAction="#restoreBackup" styleClass="secondary-button" text="📂 استعادة نسخة احتياطية" />
+            </HBox>
+        </VBox>
+
+        <!-- Notification Settings -->
+        <VBox spacing="20" styleClass="card">
+            <Label styleClass="card-title" text="🔔 التنبيهات" />
+
+            <HBox alignment="CENTER_LEFT" spacing="15">
+                <Label minWidth="200" styleClass="settings-label" text="تنبيه انتهاء الاشتراك قبل:" />
+                <Spinner fx:id="spnExpiryDays" prefWidth="120" styleClass="spinner" />
+                <Label styleClass="settings-label" text="أيام" />
+            </HBox>
+
+            <HBox alignment="CENTER_LEFT" spacing="15">
+                <Label minWidth="200" styleClass="settings-label" text="تنبيه نقص المخزون عند:" />
+                <Spinner fx:id="spnLowStockUnits" prefWidth="120" styleClass="spinner" />
+                <Label styleClass="settings-label" text="وحدة" />
+            </HBox>
+        </VBox>
+
+        <!-- About -->
+        <VBox spacing="15" styleClass="card">
+            <Label styleClass="card-title" text="ℹ️ حول البرنامج" />
+
+            <VBox spacing="8">
+                <Label styleClass="about-text" text="نظام إدارة الجيم - الإصدار 1.0.0" />
+                <Label styleClass="about-text-small" text="تم التطوير بأحدث التقنيات لإدارة الجيم بكفاءة عالية" />
+                <Label styleClass="about-text-small" text="© 2026 جميع الحقوق محفوظة" />
+            </VBox>
+
+            <HBox spacing="15">
+                <Button onAction="#contactUs" styleClass="secondary-button" text="📧 تواصل معنا" />
+                <Button onAction="#showUserGuide" styleClass="secondary-button" text="📖 دليل الاستخدام" />
+            </HBox>
+        </VBox>
+
+        <Region minHeight="20" VBox.vgrow="ALWAYS" />
+    </VBox>
+</ScrollPane>

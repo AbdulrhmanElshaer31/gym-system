@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<VBox xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.gym.ui.controller.InventoryController"
+      spacing="20" styleClass="inventory-view">
+
+    <padding>
+        <Insets top="0" right="0" bottom="0" left="0"/>
+    </padding>
+
+    <!-- Header with Date Range -->
+    <HBox alignment="CENTER_LEFT" spacing="15">
+        <Label text="📦 جرد المخزون" styleClass="section-title"/>
+
+        <Region HBox.hgrow="NEVER" minWidth="40"/>
+
+        <Label text="من:" styleClass="filter-label"/>
+        <DatePicker fx:id="startDatePicker" styleClass="date-picker" prefWidth="140"/>
+
+        <Label text="إلى:" styleClass="filter-label"/>
+        <DatePicker fx:id="endDatePicker" styleClass="date-picker" prefWidth="140"/>
+
+        <Region HBox.hgrow="ALWAYS"/>
+
+        <Button text="🔄 تحديث" styleClass="secondary-button" onAction="#refreshData"/>
+        <Button text="📝 تعديل مخزون" styleClass="warning-button" onAction="#showAdjustmentDialog"/>
+        <Button text="📥 تصدير PDF" styleClass="primary-button" onAction="#exportToPdf"/>
+    </HBox>
+
+    <!-- Summary Cards -->
+    <HBox spacing="20">
+        <VBox styleClass="stat-card stat-card-primary" HBox.hgrow="ALWAYS">
+            <Label text="إجمالي المبيعات" styleClass="stat-label"/>
+            <Label fx:id="lblTotalSales" text="0 وحدة" styleClass="stat-value text-danger"/>
+        </VBox>
+
+        <VBox styleClass="stat-card stat-card-success" HBox.hgrow="ALWAYS">
+            <Label text="إجمالي المشتريات" styleClass="stat-label"/>
+            <Label fx:id="lblTotalPurchases" text="0 وحدة" styleClass="stat-value text-success"/>
+        </VBox>
+
+        <VBox styleClass="stat-card stat-card-warning" HBox.hgrow="ALWAYS">
+            <Label text="صافي التغيير" styleClass="stat-label"/>
+            <Label fx:id="lblNetChange" text="0 وحدة" styleClass="stat-value"/>
+        </VBox>
+
+        <VBox styleClass="stat-card stat-card-accent" HBox.hgrow="ALWAYS">
+            <Label text="القيمة الحالية" styleClass="stat-label"/>
+            <Label fx:id="lblCurrentValue" text="0 ج.م" styleClass="stat-value"/>
+        </VBox>
+    </HBox>
+
+    <!-- Main Content -->
+    <HBox spacing="20" VBox.vgrow="ALWAYS">
+        <!-- Inventory Logs Table -->
+        <VBox HBox.hgrow="ALWAYS" spacing="10">
+            <Label text="سجل حركات المخزون" styleClass="card-title"/>
+
+            <TableView fx:id="logsTable" VBox.vgrow="ALWAYS" styleClass="data-table">
+                <columnResizePolicy>
+                    <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
+                </columnResizePolicy>
+                <columns>
+                    <TableColumn fx:id="colDate" text="التاريخ" minWidth="120"/>
+                    <TableColumn fx:id="colProduct" text="المنتج" minWidth="130"/>
+                    <TableColumn fx:id="colType" text="نوع الحركة" minWidth="100"/>
+                    <TableColumn fx:id="colBefore" text="قبل" minWidth="70"/>
+                    <TableColumn fx:id="colChange" text="التغيير" minWidth="80"/>
+                    <TableColumn fx:id="colAfter" text="بعد" minWidth="70"/>
+                    <TableColumn fx:id="colReason" text="السبب" minWidth="180"/>
+                </columns>
+
+                <placeholder>
+                    <Label text="لا توجد حركات مسجلة" styleClass="placeholder-label"/>
+                </placeholder>
+            </TableView>
+        </VBox>
+
+        <!-- Discrepancy Panel -->
+        <VBox styleClass="card" minWidth="300" maxWidth="350" spacing="10">
+            <Label text="🔍 فحص التناقضات" styleClass="card-title"/>
+            <Label text="مقارنة الكميات الفعلية بالسجلات" styleClass="card-subtitle"/>
+
+            <Separator styleClass="separator"/>
+
+            <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS" styleClass="scroll-pane">
+                <VBox fx:id="discrepancyList" spacing="10"/>
+            </ScrollPane>
+        </VBox>
+    </HBox>
+</VBox>

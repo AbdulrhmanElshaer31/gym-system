@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<VBox xmlns:fx="http://javafx.com/fxml/1"
+      fx:controller="com.gym.ui.controller.PlansController"
+      spacing="20" styleClass="plans-view">
+
+    <padding>
+        <Insets top="0" right="0" bottom="0" left="0"/>
+    </padding>
+
+    <!-- Header -->
+    <HBox alignment="CENTER_LEFT" spacing="15">
+        <Label text="إدارة خطط الاشتراك" styleClass="section-title"/>
+
+        <Region HBox.hgrow="ALWAYS"/>
+
+        <Button text="➕ إضافة خطة" styleClass="primary-button" onAction="#showAddPlanDialog"/>
+    </HBox>
+
+    <!-- Table Container -->
+    <TableView fx:id="plansTable" VBox.vgrow="ALWAYS" styleClass="data-table">
+        <columnResizePolicy>
+            <TableView fx:constant="CONSTRAINED_RESIZE_POLICY"/>
+        </columnResizePolicy>
+        <columns>
+            <TableColumn fx:id="colId" text="#" minWidth="50" maxWidth="60"/>
+            <TableColumn fx:id="colName" text="اسم الخطة" minWidth="150"/>
+            <TableColumn fx:id="colDuration" text="المدة" minWidth="100"/>
+            <TableColumn fx:id="colPrice" text="السعر" minWidth="100"/>
+            <TableColumn fx:id="colRenewalPrice" text="سعر التجديد" minWidth="100"/>
+            <TableColumn fx:id="colStatus" text="الحالة" minWidth="90"/>
+            <TableColumn fx:id="colMembers" text="المشتركين" minWidth="90"/>
+            <TableColumn fx:id="colActions" text="الإجراءات" minWidth="80" maxWidth="100"/>
+        </columns>
+
+        <placeholder>
+            <Label text="لا توجد خطط" styleClass="placeholder-label"/>
+        </placeholder>
+    </TableView>
+</VBox>

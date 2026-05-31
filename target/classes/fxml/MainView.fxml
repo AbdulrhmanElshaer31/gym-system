@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.geometry.Insets?>
+
+<BorderPane xmlns:fx="http://javafx.com/fxml/1"
+            fx:id="mainContainer"
+            fx:controller="com.gym.ui.controller.MainController"
+            styleClass="main-container">
+
+    <!-- Sidebar -->
+    <left>
+        <VBox fx:id="sidebar" styleClass="sidebar" spacing="8" minWidth="260" maxWidth="260">
+            <padding>
+                <Insets top="24" right="16" bottom="24" left="16"/>
+            </padding>
+
+            <!-- Logo -->
+            <HBox styleClass="logo-container" alignment="CENTER">
+                <Label fx:id="lblLogoText" text="💪 GYM" styleClass="logo-text"/>
+            </HBox>
+            <Label fx:id="lblLogoSubtitle" text="نظام إدارة الجيم" styleClass="logo-subtitle" alignment="CENTER"
+                   maxWidth="Infinity"/>
+
+            <Region VBox.vgrow="NEVER" minHeight="24"/>
+            <!-- أضف هذا الزر في أول الـ VBox بعد شعار النادي: -->
+
+            <Button fx:id="btnCheckIn" text="✓ تسجيل الحضور" onAction="#showCheckIn"
+                    styleClass="nav-button"
+                    maxWidth="Infinity"/>
+
+            <!-- ثم الأزرار الأخرى بالترتيب -->
+
+            <!-- ... باقي الأزرار -->
+
+            <!-- Navigation -->
+            <Button fx:id="btnDashboard" text="📊  لوحة التحكم"
+                    styleClass="nav-button" maxWidth="Infinity"
+                    onAction="#showDashboard"/>
+
+            <Button fx:id="btnMembers" text="👥  المشتركين"
+                    styleClass="nav-button" maxWidth="Infinity"
+                    onAction="#showMembers"/>
+
+            <Button fx:id="btnCoaches" text="🏋️  المدربين"
+                    styleClass="nav-button" maxWidth="Infinity"
+                    onAction="#showCoaches"/>
+
+            <Button fx:id="btnPlans" text="📋  الخطط"
+                    styleClass="nav-button" maxWidth="Infinity"
+                    onAction="#showPlans"/>
+
+            <Button fx:id="btnFinancial" text="💰  الإدارة المالية"
+                    styleClass="nav-button" maxWidth="Infinity"
+                    onAction="#showFinancial"/>
+
+            <Button fx:id="btnProducts" text="🥤  المشروبات والمأكولات"
+                    styleClass="nav-button" maxWidth="Infinity"
+                    onAction="#showProducts"/>
+
+            <Button fx:id="btnInventory" text="📦  الجرد"
+                    styleClass="nav-button" maxWidth="Infinity"
+                    onAction="#showInventory"/>
+
+            <Region VBox.vgrow="ALWAYS"/>
+
+            <Separator styleClass="nav-separator"/>
+
+            <Button fx:id="btnSettings" text="⚙️  الإعدادات"
+                    styleClass="nav-button" maxWidth="Infinity"
+                    onAction="#showSettings"/>
+
+            <!-- Version -->
+            <HBox alignment="CENTER">
+                <Label text="الإصدار 1.0.0" styleClass="version-text"/>
+            </HBox>
+        </VBox>
+    </left>
+
+    <!-- Main Content -->
+    <center>
+        <VBox styleClass="content-wrapper">
+            <!-- Header -->
+            <HBox styleClass="header" alignment="CENTER_LEFT" spacing="20">
+                <padding>
+                    <Insets top="18" right="30" bottom="18" left="30"/>
+                </padding>
+
+                <Label fx:id="lblCurrentPage" text="لوحة التحكم" styleClass="page-title"/>
+
+                <Region HBox.hgrow="ALWAYS"/>
+
+                <Label text="" styleClass="current-time" fx:id="lblTime"/>
+            </HBox>
+
+            <!-- Content Area -->
+            <StackPane fx:id="contentArea" VBox.vgrow="ALWAYS" styleClass="content-area"/>
+        </VBox>
+    </center>
+</BorderPane>

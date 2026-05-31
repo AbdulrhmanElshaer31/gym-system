@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.*?>
+<?import javafx.scene.layout.*?>
+<?import javafx.scene.chart.*?>
+<?import javafx.geometry.Insets?>
+
+<ScrollPane xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="com.gym.ui.controller.DashboardController"
+            fitToWidth="true" fitToHeight="true"
+            styleClass="dashboard-view">
+
+    <VBox spacing="24" styleClass="dashboard-view">
+        <padding>
+            <Insets top="10" right="10" bottom="10" left="10"/>
+        </padding>
+
+        <!-- Stats Cards Row 1 -->
+        <HBox spacing="20">
+            <!-- Active Members -->
+            <VBox styleClass="stat-card stat-card-primary" HBox.hgrow="ALWAYS" spacing="4">
+                <Label text="المشتركين النشطين" styleClass="stat-label"/>
+                <Label fx:id="lblActiveMembers" text="0" styleClass="stat-value"/>
+                <Label text="اشتراك فعال" styleClass="stat-sublabel"/>
+            </VBox>
+
+            <!-- Expired Members -->
+            <VBox styleClass="stat-card stat-card-danger" HBox.hgrow="ALWAYS" spacing="4">
+                <Label text="الاشتراكات المنتهية" styleClass="stat-label"/>
+                <Label fx:id="lblExpiredMembers" text="0" styleClass="stat-value"/>
+                <Label text="بحاجة للتجديد" styleClass="stat-sublabel"/>
+            </VBox>
+
+            <!-- Near Expiry -->
+            <VBox styleClass="stat-card stat-card-warning" HBox.hgrow="ALWAYS" spacing="4">
+                <Label text="قارب على الانتهاء" styleClass="stat-label"/>
+                <Label fx:id="lblNearExpiry" text="0" styleClass="stat-value"/>
+                <Label text="خلال 7 أيام" styleClass="stat-sublabel"/>
+            </VBox>
+
+            <!-- Daily Income -->
+            <VBox styleClass="stat-card stat-card-success" HBox.hgrow="ALWAYS" spacing="4">
+                <Label text="دخل اليوم" styleClass="stat-label"/>
+                <Label fx:id="lblDailyIncome" text="0 ج.م" styleClass="stat-value"/>
+                <Label text="الإيرادات اليومية" styleClass="stat-sublabel"/>
+            </VBox>
+        </HBox>
+
+        <!-- Stats Cards Row 2 -->
+        <HBox spacing="20">
+            <!-- Monthly Income -->
+            <VBox styleClass="stat-card" HBox.hgrow="ALWAYS" spacing="4">
+                <Label text="إيرادات الشهر" styleClass="stat-label"/>
+                <Label fx:id="lblMonthlyIncome" text="0 ج.م" styleClass="stat-value text-success"/>
+            </VBox>
+
+            <!-- Monthly Expenses -->
+            <VBox styleClass="stat-card" HBox.hgrow="ALWAYS" spacing="4">
+                <Label text="مصروفات الشهر" styleClass="stat-label"/>
+                <Label fx:id="lblMonthlyExpenses" text="0 ج.م" styleClass="stat-value text-danger"/>
+            </VBox>
+
+            <!-- Net Profit -->
+            <VBox styleClass="stat-card" HBox.hgrow="ALWAYS" spacing="4">
+                <Label text="صافي الربح" styleClass="stat-label"/>
+                <Label fx:id="lblMonthlyProfit" text="0 ج.م" styleClass="stat-value"/>
+            </VBox>
+
+            <!-- Most Popular Plan -->
+            <VBox styleClass="stat-card" HBox.hgrow="ALWAYS" spacing="4">
+                <Label text="الخطة الأكثر استخداماً" styleClass="stat-label"/>
+                <Label fx:id="lblMostPopularPlan" text="-" styleClass="stat-value-small"/>
+            </VBox>
+        </HBox>
+
+        <!-- Charts and Alerts Row -->
+        <HBox spacing="20" VBox.vgrow="ALWAYS">
+            <!-- Charts -->
+            <VBox styleClass="card" HBox.hgrow="ALWAYS" spacing="15" minHeight="350">
+                <Label text="📊 توزيع الخطط" styleClass="card-title"/>
+                <PieChart fx:id="planDistributionChart" VBox.vgrow="ALWAYS" legendVisible="true"
+                          legendSide="BOTTOM" labelsVisible="false" minHeight="280"/>
+            </VBox>
+
+            <VBox styleClass="card" HBox.hgrow="ALWAYS" spacing="15" minHeight="350">
+                <Label text="💰 الإيرادات حسب التصنيف" styleClass="card-title"/>
+                <BarChart fx:id="incomeChart" VBox.vgrow="ALWAYS" legendVisible="false"
+                          animated="true" minHeight="280">
+                    <xAxis>
+                        <CategoryAxis label="التصنيف" side="BOTTOM"/>
+                    </xAxis>
+                    <yAxis>
+                        <NumberAxis label="المبلغ (ج.م)" side="LEFT"/>
+                    </yAxis>
+                </BarChart>
+            </VBox>
+
+            <!-- Alerts Panel -->
+            <VBox styleClass="card" minWidth="320" maxWidth="380" spacing="15">
+                <HBox alignment="CENTER_LEFT" spacing="10">
+                    <Label text="🔔 التنبيهات" styleClass="card-title"/>
+                    <Region HBox.hgrow="ALWAYS"/>
+                    <Button text="⟳ تحديث" styleClass="small-button" onAction="#refreshDashboard"/>
+                </HBox>
+
+                <ScrollPane fitToWidth="true" VBox.vgrow="ALWAYS" styleClass="alerts-scroll" minHeight="150">
+                    <VBox fx:id="alertsContainer" spacing="10" styleClass="alerts-container"/>
+                </ScrollPane>
+
+                <Separator/>
+
+                <Label text="📦 منتجات تحتاج إعادة تخزين" styleClass="section-subtitle"/>
+                <ScrollPane fitToWidth="true" maxHeight="120" styleClass="alerts-scroll">
+                    <VBox fx:id="lowStockContainer" spacing="8"/>
+                </ScrollPane>
+
+                <HBox alignment="CENTER_LEFT" spacing="10" styleClass="info-row">
+                    <Label text="💎 قيمة المخزون:" styleClass="info-label"/>
+                    <Label fx:id="lblInventoryValue" text="0 ج.م" styleClass="info-value text-success"/>
+                </HBox>
+            </VBox>
+        </HBox>
+    </VBox>
+</ScrollPane>
