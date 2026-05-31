@@ -1,8 +1,10 @@
 package com.gym.service;
 
 import com.gym.entity.*;
+import com.gym.exception.InsufficientStockException;
 import com.gym.repository.*;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,6 +14,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ProductService {
@@ -85,18 +88,27 @@ public class ProductService {
 
     @Transactional
     public Product sellProduct(Long productId, int quantity) {
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new RuntimeException("المنتج غير موجود"));
+        log.info("Attempting to sell product {} with quantity {}", productId, quantity);
         
-        ensureVersion(product);
+        // Use pessimistic locking to prevent race conditions
+        Product product = productRepository.findByIdWithLock(productId)
+                .orElseThrow(() -> {
+                    log.error("Product not found: {}", productId);
+                    return new RuntimeException("المنتج غير موجود");
+                });
+        
         if (product.getQuantity() < quantity) {
-            throw new RuntimeException("الكمية المطلوبة غير متوفرة");
+            log.warn("Insufficient stock for product {}: available={}, requested={}", 
+                    productId, product.getQuantity(), quantity);
+            throw new InsufficientStockException("الكمية المطلوبة غير متوفرة");
         }
         
         int previousQuantity = product.getQuantity();
         product.setQuantity(previousQuantity - quantity);
         Product savedProduct = productRepository.save(product);
-        productRepository.flush(); // Force flush to detect version conflicts early
+        productRepository.flush();
+        
+        log.debug("Product {} sold: {} units", productId, quantity);
         
         // Log inventory change
         logInventoryChange(savedProduct, InventoryLog.LogType.SALE, 
@@ -118,14 +130,21 @@ public class ProductService {
 
     @Transactional
     public Product addStock(Long productId, int quantity, BigDecimal purchaseCost) {
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new RuntimeException("المنتج غير موجود"));
+        log.info("Adding stock to product {}: quantity={}", productId, quantity);
         
-        ensureVersion(product);
+        // Use pessimistic locking to prevent race conditions
+        Product product = productRepository.findByIdWithLock(productId)
+                .orElseThrow(() -> {
+                    log.error("Product not found: {}", productId);
+                    return new RuntimeException("المنتج غير موجود");
+                });
+        
         int previousQuantity = product.getQuantity();
         product.setQuantity(previousQuantity + quantity);
         Product savedProduct = productRepository.save(product);
-        productRepository.flush(); // Force flush to detect version conflicts early
+        productRepository.flush();
+        
+        log.debug("Stock added to product {}: new quantity={}", productId, savedProduct.getQuantity());
         
         // Log inventory change
         logInventoryChange(savedProduct, InventoryLog.LogType.PURCHASE, 
@@ -148,16 +167,22 @@ public class ProductService {
 
     @Transactional
     public Product adjustStock(Long productId, int newQuantity, String reason) {
-        Product product = productRepository.findById(productId)
-                .orElseThrow(() -> new RuntimeException("المنتج غير موجود"));
+        log.info("Adjusting stock for product {}: newQuantity={}", productId, newQuantity);
         
-        // Fix for old DB rows where @Version is NULL -> causes NPE in Hibernate Versioning.increment
-        ensureVersion(product);
+        // Use pessimistic locking to prevent race conditions
+        Product product = productRepository.findByIdWithLock(productId)
+                .orElseThrow(() -> {
+                    log.error("Product not found: {}", productId);
+                    return new RuntimeException("المنتج غير موجود");
+                });
+        
         int previousQuantity = product.getQuantity();
         int change = newQuantity - previousQuantity;
         product.setQuantity(newQuantity);
         Product savedProduct = productRepository.save(product);
-        productRepository.flush(); // Force flush to detect version conflicts early
+        productRepository.flush();
+        
+        log.debug("Stock adjusted for product {}: change={}", productId, change);
         
         // Log inventory change
         logInventoryChange(savedProduct, InventoryLog.LogType.ADJUSTMENT, 

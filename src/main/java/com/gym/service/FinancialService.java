@@ -3,6 +3,7 @@ package com.gym.service;
 import com.gym.entity.Transaction;
 import com.gym.repository.TransactionRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,6 +13,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class FinancialService {
@@ -35,15 +37,23 @@ public class FinancialService {
                                       BigDecimal amount, 
                                       String description, 
                                       String notes) {
-        Transaction transaction = new Transaction();
-        transaction.setType(Transaction.TransactionType.EXPENSE);
-        transaction.setCategory(category);
-        transaction.setAmount(amount);
-        transaction.setDescription(description);
-        transaction.setNotes(notes);
-        transaction.setTransactionDate(LocalDate.now());
-        transaction.setVersion(0L); // Initialize version explicitly
-        return transactionRepository.save(transaction);
+        log.info("Creating expense: category={}, amount={}", category, amount);
+        try {
+            Transaction transaction = new Transaction();
+            transaction.setType(Transaction.TransactionType.EXPENSE);
+            transaction.setCategory(category);
+            transaction.setAmount(amount);
+            transaction.setDescription(description);
+            transaction.setNotes(notes);
+            transaction.setTransactionDate(LocalDate.now());
+            transaction.setVersion(0L);
+            Transaction saved = transactionRepository.save(transaction);
+            log.debug("Expense created with id: {}", saved.getId());
+            return saved;
+        } catch (Exception e) {
+            log.error("Failed to create expense", e);
+            throw e;
+        }
     }
 
     @Transactional
@@ -51,15 +61,23 @@ public class FinancialService {
                                      BigDecimal amount, 
                                      String description, 
                                      String notes) {
-        Transaction transaction = new Transaction();
-        transaction.setType(Transaction.TransactionType.INCOME);
-        transaction.setCategory(category);
-        transaction.setAmount(amount);
-        transaction.setDescription(description);
-        transaction.setNotes(notes);
-        transaction.setTransactionDate(LocalDate.now());
-        transaction.setVersion(0L); // Initialize version explicitly
-        return transactionRepository.save(transaction);
+        log.info("Creating income: category={}, amount={}", category, amount);
+        try {
+            Transaction transaction = new Transaction();
+            transaction.setType(Transaction.TransactionType.INCOME);
+            transaction.setCategory(category);
+            transaction.setAmount(amount);
+            transaction.setDescription(description);
+            transaction.setNotes(notes);
+            transaction.setTransactionDate(LocalDate.now());
+            transaction.setVersion(0L);
+            Transaction saved = transactionRepository.save(transaction);
+            log.debug("Income created with id: {}", saved.getId());
+            return saved;
+        } catch (Exception e) {
+            log.error("Failed to create income", e);
+            throw e;
+        }
     }
 
     public BigDecimal getDailyIncome() {

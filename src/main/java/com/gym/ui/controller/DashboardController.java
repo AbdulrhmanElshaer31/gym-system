@@ -7,14 +7,19 @@ import javafx.fxml.FXML;
 import javafx.scene.chart.*;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.PreDestroy;
 import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
+@Slf4j
 @Component
 public class DashboardController {
 
@@ -37,6 +42,8 @@ public class DashboardController {
     private DashboardService dashboardService;
 
     private final NumberFormat currencyFormat = NumberFormat.getCurrencyInstance(new Locale("ar", "EG"));
+    
+    private final ExecutorService executor = Executors.newFixedThreadPool(2);
 
     @FXML
     public void initialize() {
@@ -44,56 +51,73 @@ public class DashboardController {
     }
 
     public void loadDashboardData() {
-        Platform.runLater(() -> {
+        log.debug("Loading dashboard data on background thread");
+        
+        // Load data on background thread to prevent UI freezing
+        executor.submit(() -> {
             try {
                 DashboardService.DashboardStats stats = dashboardService.getDashboardStats();
+                log.debug("Dashboard stats loaded successfully");
                 
-                // Update member stats
-                lblActiveMembers.setText(String.valueOf(stats.activeMembers()));
-                lblExpiredMembers.setText(String.valueOf(stats.expiredMembers()));
-                lblNearExpiry.setText(String.valueOf(stats.nearExpiryCount()));
-                
-                // Update financial stats
-                lblDailyIncome.setText(formatCurrency(stats.dailyIncome()));
-                lblMonthlyIncome.setText(formatCurrency(stats.monthlyIncome()));
-                lblMonthlyExpenses.setText(formatCurrency(stats.monthlyExpenses()));
-                lblMonthlyProfit.setText(formatCurrency(stats.monthlyProfit()));
-                
-                // Style profit based on positive/negative
-                if (stats.monthlyProfit().compareTo(BigDecimal.ZERO) >= 0) {
-                    lblMonthlyProfit.getStyleClass().removeAll("text-danger");
-                    lblMonthlyProfit.getStyleClass().add("text-success");
-                } else {
-                    lblMonthlyProfit.getStyleClass().removeAll("text-success");
-                    lblMonthlyProfit.getStyleClass().add("text-danger");
-                }
-                
-                // Update plan info
-                if (stats.mostPopularPlan() != null) {
-                    lblMostPopularPlan.setText(stats.mostPopularPlan().getName());
-                } else {
-                    lblMostPopularPlan.setText("لا توجد بيانات");
-                }
-                
-                // Update inventory stats
-                if (lblInventoryValue != null) {
-                    lblInventoryValue.setText(formatCurrency(stats.inventoryValue()));
-                }
-                
-                // Update charts
-                updatePlanChart(stats.membersByPlan());
-                updateIncomeChart(stats.incomeByCategory());
-                
-                // Update alerts
-                updateAlerts(stats);
-                
-                // Update low stock list
-                updateLowStockList(stats);
+                // Update UI on JavaFX thread
+                Platform.runLater(() -> updateDashboardUI(stats));
                 
             } catch (Exception e) {
-                e.printStackTrace();
+                log.error("Failed to load dashboard data", e);
+                Platform.runLater(() -> showError("خطأ في تحميل البيانات", e.getMessage()));
             }
         });
+    }
+
+    private void updateDashboardUI(DashboardService.DashboardStats stats) {
+        try {
+            // Update member stats
+            lblActiveMembers.setText(String.valueOf(stats.activeMembers()));
+            lblExpiredMembers.setText(String.valueOf(stats.expiredMembers()));
+            lblNearExpiry.setText(String.valueOf(stats.nearExpiryCount()));
+            
+            // Update financial stats
+            lblDailyIncome.setText(formatCurrency(stats.dailyIncome()));
+            lblMonthlyIncome.setText(formatCurrency(stats.monthlyIncome()));
+            lblMonthlyExpenses.setText(formatCurrency(stats.monthlyExpenses()));
+            lblMonthlyProfit.setText(formatCurrency(stats.monthlyProfit()));
+            
+            // Style profit based on positive/negative
+            if (stats.monthlyProfit().compareTo(BigDecimal.ZERO) >= 0) {
+                lblMonthlyProfit.getStyleClass().removeAll("text-danger");
+                lblMonthlyProfit.getStyleClass().add("text-success");
+            } else {
+                lblMonthlyProfit.getStyleClass().removeAll("text-success");
+                lblMonthlyProfit.getStyleClass().add("text-danger");
+            }
+            
+            // Update plan info
+            if (stats.mostPopularPlan() != null) {
+                lblMostPopularPlan.setText(stats.mostPopularPlan().getName());
+            } else {
+                lblMostPopularPlan.setText("لا توجد بيانات");
+            }
+            
+            // Update inventory stats
+            if (lblInventoryValue != null) {
+                lblInventoryValue.setText(formatCurrency(stats.inventoryValue()));
+            }
+            
+            // Update charts
+            updatePlanChart(stats.membersByPlan());
+            updateIncomeChart(stats.incomeByCategory());
+            
+            // Update alerts
+            updateAlerts(stats);
+            
+            // Update low stock list
+            updateLowStockList(stats);
+            
+            log.debug("Dashboard UI updated successfully");
+        } catch (Exception e) {
+            log.error("Failed to update dashboard UI", e);
+            showError("خطأ", e.getMessage());
+        }
     }
 
     private void updatePlanChart(Map<Long, Long> membersByPlan) {
@@ -208,8 +232,21 @@ public class DashboardController {
         return String.format("%.0f ج.م", amount);
     }
 
+    private void showError(String title, String message) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle(title);
+        alert.setContentText(message);
+        alert.showAndWait();
+    }
+
     @FXML
     private void refreshDashboard() {
         loadDashboardData();
+    }
+
+    @PreDestroy
+    public void cleanup() {
+        log.debug("Cleaning up DashboardController resources");
+        executor.shutdown();
     }
 }

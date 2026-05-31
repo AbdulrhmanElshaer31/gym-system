@@ -59,5 +59,12 @@ public interface MemberRepository extends JpaRepository<Member, Long> {
             "m.memberId LIKE CONCAT('%', :search, '%'))")
     List<Member> searchMembersByGender(@Param("search") String search, @Param("gender") Member.Gender gender);
 
+    /**
+     * Find all active members with eager loading to prevent LazyInitializationException
+     */
+    @Query("SELECT DISTINCT m FROM Member m LEFT JOIN FETCH m.coach LEFT JOIN FETCH m.currentPlan " +
+            "WHERE m.deleted = FALSE ORDER BY m.createdAt DESC")
+    List<Member> findAllActiveWithAssociations();
+
     boolean existsByPhone(String phone);
 }

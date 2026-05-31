@@ -1,11 +1,15 @@
 package com.gym.service;
 
 import com.gym.entity.*;
+import com.gym.exception.MemberCreationException;
+import com.gym.exception.SubscriptionException;
 import com.gym.repository.MemberRepository;
 import com.gym.repository.PlanRepository;
 import com.gym.repository.SubscriptionHistoryRepository;
 import com.gym.repository.TransactionRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,6 +18,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class MemberService {
@@ -25,7 +30,13 @@ public class MemberService {
     private final AuditService auditService;
 
     public List<Member> getAllActiveMembers() {
-        return memberRepository.findByDeletedFalseOrderByCreatedAtDesc();
+        log.debug("Fetching all active members with eager loading");
+        try {
+            return memberRepository.findAllActiveWithAssociations();
+        } catch (Exception e) {
+            log.error("Failed to fetch active members", e);
+            throw e;
+        }
     }
 
     public Optional<Member> getMemberById(Long id) {
@@ -53,50 +64,63 @@ public class MemberService {
 
     @Transactional
     public Member createMember(Member member, Plan plan) {
-        // احصل على Plan managed من قاعدة البيانات
-        Plan managedPlan = planRepository.findById(plan.getId())
-                .orElseThrow(() -> new RuntimeException("الخطة غير موجودة"));
+        log.info("Creating new member: {}", member.getName());
+        try {
+            // احصل على Plan managed من قاعدة البيانات
+            Plan managedPlan = planRepository.findById(plan.getId())
+                    .orElseThrow(() -> {
+                        log.error("Plan not found: {}", plan.getId());
+                        return new RuntimeException("الخطة غير موجودة");
+                    });
 
-        // توليد معرف فريد للعضو
-        if (member.getMemberId() == null || member.getMemberId().isEmpty()) {
-            member.setMemberId(generateUniqueMemberId());
+            // توليد معرف فريد للعضو
+            if (member.getMemberId() == null || member.getMemberId().isEmpty()) {
+                member.setMemberId(generateUniqueMemberId());
+            }
+
+            member.setCurrentPlan(managedPlan);
+            member.setSubscriptionStartDate(LocalDate.now());
+            member.setSubscriptionEndDate(LocalDate.now().plusDays(managedPlan.getDurationDays()));
+            member.setRenewalCount(0);
+            member.setDeleted(false);
+
+            // ✅ تعيين الحصص الأولية
+            if (managedPlan.getNumberOfSessions() != null && managedPlan.getNumberOfSessions() > 0) {
+                member.setRemainingSession(managedPlan.getNumberOfSessions());
+            } else {
+                member.setRemainingSession(0);
+            }
+
+            Member savedMember = memberRepository.save(member);
+            log.debug("Member created with ID: {}", savedMember.getId());
+
+            // إنشاء سجل الاشتراك
+            SubscriptionHistory history = new SubscriptionHistory();
+            history.setMember(savedMember);
+            history.setPlan(managedPlan);
+            history.setStartDate(savedMember.getSubscriptionStartDate());
+            history.setEndDate(savedMember.getSubscriptionEndDate());
+            history.setAmountPaid(managedPlan.getPrice());
+            subscriptionHistoryRepository.save(history);
+
+            // إنشاء معاملة مالية
+            Transaction transaction = new Transaction();
+            transaction.setType(Transaction.TransactionType.INCOME);
+            transaction.setCategory(Transaction.TransactionCategory.SUBSCRIPTION);
+            transaction.setAmount(managedPlan.getPrice());
+            transaction.setDescription("اشتراك جديد - " + member.getName() + " - " + managedPlan.getName());
+            transaction.setMember(savedMember);
+            transaction.setTransactionDate(LocalDate.now());
+            transactionRepository.save(transaction);
+
+            return savedMember;
+        } catch (DataIntegrityViolationException e) {
+            log.error("Phone number already exists: {}", member.getPhone(), e);
+            throw new MemberCreationException("رقم الهاتف موجود بالفعل", e);
+        } catch (Exception e) {
+            log.error("Failed to create member", e);
+            throw new MemberCreationException("فشل إنشاء المشترك", e);
         }
-
-        member.setCurrentPlan(managedPlan);
-        member.setSubscriptionStartDate(LocalDate.now());
-        member.setSubscriptionEndDate(LocalDate.now().plusDays(managedPlan.getDurationDays()));
-        member.setRenewalCount(0);
-        member.setDeleted(false);
-
-        // ✅ تعيين الحصص الأولية
-        if (managedPlan.getNumberOfSessions() != null && managedPlan.getNumberOfSessions() > 0) {
-            member.setRemainingSession(managedPlan.getNumberOfSessions());
-        } else {
-            member.setRemainingSession(0);
-        }
-
-        Member savedMember = memberRepository.save(member);
-
-        // إنشاء سجل الاشتراك
-        SubscriptionHistory history = new SubscriptionHistory();
-        history.setMember(savedMember);
-        history.setPlan(managedPlan);
-        history.setStartDate(savedMember.getSubscriptionStartDate());
-        history.setEndDate(savedMember.getSubscriptionEndDate());
-        history.setAmountPaid(managedPlan.getPrice());
-        subscriptionHistoryRepository.save(history);
-
-        // إنشاء معاملة مالية
-        Transaction transaction = new Transaction();
-        transaction.setType(Transaction.TransactionType.INCOME);
-        transaction.setCategory(Transaction.TransactionCategory.SUBSCRIPTION);
-        transaction.setAmount(managedPlan.getPrice());
-        transaction.setDescription("اشتراك جديد - " + member.getName() + " - " + managedPlan.getName());
-        transaction.setMember(savedMember);
-        transaction.setTransactionDate(LocalDate.now());
-        transactionRepository.save(transaction);
-
-        return savedMember;
     }
 
     @Transactional
@@ -132,52 +156,65 @@ public class MemberService {
 
     @Transactional
     public Member renewSubscription(Long memberId, Plan newPlan, BigDecimal customAmount) {
-        return memberRepository.findById(memberId)
-                .map(member -> {
-                    Plan managedPlan = planRepository.findById(newPlan.getId())
-                            .orElseThrow(() -> new RuntimeException("الخطة غير موجودة"));
+        log.info("Renewing subscription for member {}", memberId);
+        try {
+            return memberRepository.findById(memberId)
+                    .map(member -> {
+                        Plan managedPlan = planRepository.findById(newPlan.getId())
+                                .orElseThrow(() -> {
+                                    log.error("Plan not found: {}", newPlan.getId());
+                                    return new RuntimeException("الخطة غير موجودة");
+                                });
 
-                    LocalDate newStartDate = member.getSubscriptionEndDate().isAfter(LocalDate.now())
-                            ? member.getSubscriptionEndDate()
-                            : LocalDate.now();
-                    LocalDate newEndDate = newStartDate.plusDays(managedPlan.getDurationDays());
+                        LocalDate newStartDate = member.getSubscriptionEndDate().isAfter(LocalDate.now())
+                                ? member.getSubscriptionEndDate()
+                                : LocalDate.now();
+                        LocalDate newEndDate = newStartDate.plusDays(managedPlan.getDurationDays());
 
-                    member.setCurrentPlan(managedPlan);
-                    member.setSubscriptionStartDate(newStartDate);
-                    member.setSubscriptionEndDate(newEndDate);
-                    member.setRenewalCount(member.getRenewalCount() + 1);
+                        member.setCurrentPlan(managedPlan);
+                        member.setSubscriptionStartDate(newStartDate);
+                        member.setSubscriptionEndDate(newEndDate);
+                        member.setRenewalCount(member.getRenewalCount() + 1);
 
-                    // ✅ إعادة تعيين الحصص إلى العدد الكامل
-                    if (managedPlan.getNumberOfSessions() != null && managedPlan.getNumberOfSessions() > 0) {
-                        member.setRemainingSession(managedPlan.getNumberOfSessions());
-                    }
+                        // ✅ إعادة تعيين الحصص إلى العدد الكامل
+                        if (managedPlan.getNumberOfSessions() != null && managedPlan.getNumberOfSessions() > 0) {
+                            member.setRemainingSession(managedPlan.getNumberOfSessions());
+                        }
 
-                    Member savedMember = memberRepository.save(member);
+                        Member savedMember = memberRepository.save(member);
+                        log.debug("Subscription renewed for member {}", memberId);
 
-                    BigDecimal renewalAmount = customAmount != null ? customAmount : managedPlan.getEffectiveRenewalPrice();
+                        BigDecimal renewalAmount = customAmount != null ? customAmount : managedPlan.getEffectiveRenewalPrice();
 
-                    // إنشاء سجل الاشتراك
-                    SubscriptionHistory history = new SubscriptionHistory();
-                    history.setMember(savedMember);
-                    history.setPlan(managedPlan);
-                    history.setStartDate(newStartDate);
-                    history.setEndDate(newEndDate);
-                    history.setAmountPaid(renewalAmount);
-                    subscriptionHistoryRepository.save(history);
+                        // إنشاء سجل الاشتراك
+                        SubscriptionHistory history = new SubscriptionHistory();
+                        history.setMember(savedMember);
+                        history.setPlan(managedPlan);
+                        history.setStartDate(newStartDate);
+                        history.setEndDate(newEndDate);
+                        history.setAmountPaid(renewalAmount);
+                        subscriptionHistoryRepository.save(history);
 
-                    // إنشاء معاملة مالية
-                    Transaction transaction = new Transaction();
-                    transaction.setType(Transaction.TransactionType.INCOME);
-                    transaction.setCategory(Transaction.TransactionCategory.RENEWAL);
-                    transaction.setAmount(renewalAmount);
-                    transaction.setDescription("تجديد اشتراك - " + member.getName() + " - " + managedPlan.getName());
-                    transaction.setMember(savedMember);
-                    transaction.setTransactionDate(LocalDate.now());
-                    transactionRepository.save(transaction);
+                        // إنشاء معاملة مالية
+                        Transaction transaction = new Transaction();
+                        transaction.setType(Transaction.TransactionType.INCOME);
+                        transaction.setCategory(Transaction.TransactionCategory.RENEWAL);
+                        transaction.setAmount(renewalAmount);
+                        transaction.setDescription("تجديد اشتراك - " + member.getName() + " - " + managedPlan.getName());
+                        transaction.setMember(savedMember);
+                        transaction.setTransactionDate(LocalDate.now());
+                        transactionRepository.save(transaction);
 
-                    return savedMember;
-                })
-                .orElseThrow(() -> new RuntimeException("المشترك غير موجود"));
+                        return savedMember;
+                    })
+                    .orElseThrow(() -> {
+                        log.error("Member not found: {}", memberId);
+                        return new SubscriptionException("المشترك غير موجود");
+                    });
+        } catch (Exception e) {
+            log.error("Failed to renew subscription for member {}", memberId, e);
+            throw new SubscriptionException("فشل تجديد الاشتراك", e);
+        }
     }
 
     public List<SubscriptionHistory> getMemberHistory(Long memberId) {
